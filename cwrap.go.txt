@@ -1,0 +1,26 @@
+package main
+
+import "h12.io/cwrap"
+
+var krun = &cwrap.Package{
+	PacName: "krun",
+	PacPath: "go-libkrun",
+	From: cwrap.Header{
+		Dir:           "/usr/local/include/",
+		File:          "libkrun.h",
+		NamePattern:   `\A(?:krun|KRUN)(.*)|VIRGL.*`,
+		Excluded:      []string{},
+		CgoDirectives: []string{"pkg-config: libkrun"},
+	},
+}
+
+func main() {
+	err := krun.Wrap()
+	if err != nil {
+		panic(err)
+	}
+	err = krun.GenConst(krun.PacPath + "/auto_const.go")
+	if err != nil {
+		panic(err)
+	}
+}
