@@ -233,23 +233,6 @@ func SetLogLevel(level uint32) (ret int32) {
 	return
 }
 
-// krun_set_mapped_volumes
-func SetMappedVolumes(ctxId uint32, mappedVolumes []string) (ret int32) {
-	_ctxId := C.uint32_t(ctxId)
-	_mappedVolumes_ := make([]*C.char, len(mappedVolumes))
-	for i := range mappedVolumes {
-		_mappedVolumes_[i] = C.CString(mappedVolumes[i])
-		defer C.free(unsafe.Pointer(_mappedVolumes_[i]))
-	}
-	_mappedVolumes := (**C.char)(nil)
-	if len(_mappedVolumes_) > 0 {
-		_mappedVolumes = (**C.char)(unsafe.Pointer(&_mappedVolumes_[0]))
-	}
-	_ret := C.krun_set_mapped_volumes(_ctxId, _mappedVolumes)
-	ret = int32(_ret)
-	return
-}
-
 // krun_set_nested_virt
 func SetNestedVirt(ctxId uint32, enabled bool) (ret int32) {
 	_ctxId := C.uint32_t(ctxId)
@@ -311,16 +294,6 @@ func SetRlimits(ctxId uint32, rlimits []string) (ret int32) {
 	return
 }
 
-// krun_set_root
-func SetRoot(ctxId uint32, rootPath string) (ret int32) {
-	_ctxId := C.uint32_t(ctxId)
-	_rootPath := C.CString(rootPath)
-	defer C.free(unsafe.Pointer(_rootPath))
-	_ret := C.krun_set_root(_ctxId, _rootPath)
-	ret = int32(_ret)
-	return
-}
-
 // krun_set_root_disk
 func SetRootDisk(ctxId uint32, diskPath string) (ret int32) {
 	_ctxId := C.uint32_t(ctxId)
@@ -353,16 +326,6 @@ func SetSndDevice(ctxId uint32, enable bool) (ret int32) {
 	_ctxId := C.uint32_t(ctxId)
 	_enable := C.bool(enable)
 	_ret := C.krun_set_snd_device(_ctxId, _enable)
-	ret = int32(_ret)
-	return
-}
-
-// krun_set_tee_config_file
-func SetTeeConfigFile(ctxId uint32, filepath string) (ret int32) {
-	_ctxId := C.uint32_t(ctxId)
-	_filepath := C.CString(filepath)
-	defer C.free(unsafe.Pointer(_filepath))
-	_ret := C.krun_set_tee_config_file(_ctxId, _filepath)
 	ret = int32(_ret)
 	return
 }
