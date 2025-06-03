@@ -1,3 +1,3 @@
 # go-libkrun
 
-Generated Go wrapper for libkrun library.
+Generated Go wrapper for [libkrun](https://github.com/containers/libkrun) library.
