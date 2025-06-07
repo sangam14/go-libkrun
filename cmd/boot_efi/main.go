@@ -64,7 +64,7 @@ func bootEfi(args []string) int {
 
 	// Spawn a thread to listen on "/tmp/krun_shutdown.sock" for a request to send
 	// a shutdown signal to the guest.
-	go listenShutdownRequest(efd);
+	go listenShutdownRequest(int(efd));
 
 	// Start and enter the microVM. Unless there is some error while creating the microVM
 	// this function never returns.
