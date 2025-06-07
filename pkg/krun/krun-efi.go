@@ -8,10 +8,6 @@ package krun
 */
 import "C"
 
-import (
-	"unsafe"
-)
-
 // krun_get_shutdown_eventfd
 func GetShutdownEventfd(ctxId uint32) (ret int32) {
 	_ctxId := C.uint32_t(ctxId)
