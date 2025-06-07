@@ -15,5 +15,3 @@ func GetShutdownEventfd(ctxId uint32) (ret int32) {
 	ret = int32(_ret)
 	return
 }
-
-
