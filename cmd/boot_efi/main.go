@@ -20,11 +20,17 @@ func perror(message string) {
 	fmt.Fprintf(os.Stderr, "%s: %d\n", message, errno)
 }
 
+func connectToPasst(socketPath string) int {
+	return 0
+}
+
 func listenShutdownRequest(fd int) {
 }
 
 func bootEfi(args []string) int {
-	diskImage := args[1]    // raw format
+	socketPath := "/tmp/network.sock"
+
+	diskImage := args[1] // raw format
 
 	// Set the log level to "off".
 	e := krun.SetLogLevel(0)
@@ -52,19 +58,30 @@ func bootEfi(args []string) int {
 
 	if e := krun.SetRootDisk(ctxId, diskImage); e != 0 {
 		errno = -e
-        perror("Error configuring disk image");
+		perror("Error configuring disk image")
 		return -1
 	}
 
-	efd := krun.GetShutdownEventfd(ctxId);
-	if (efd < 0) {
-		perror("Can't get shutdown eventfd");
-		return -1;
+	pfd := connectToPasst(socketPath)
+	if passt_fd < 0 {
+		return -1
+	}
+
+	if e := krun.SetPasstFd(ctxId, pfd); e != 0 {
+		errno = -e
+		perror("Error configuring net mode")
+		return -1
+	}
+
+	efd := krun.GetShutdownEventfd(ctxId)
+	if efd < 0 {
+		perror("Can't get shutdown eventfd")
+		return -1
 	}
 
 	// Spawn a thread to listen on "/tmp/krun_shutdown.sock" for a request to send
 	// a shutdown signal to the guest.
-	go listenShutdownRequest(int(efd));
+	go listenShutdownRequest(int(efd))
 
 	// Start and enter the microVM. Unless there is some error while creating the microVM
 	// this function never returns.
