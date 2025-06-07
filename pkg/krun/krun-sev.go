@@ -4,7 +4,7 @@ package krun
 /*
 #include <libkrun.h>
 #include <stdlib.h>
-#cgo pkg-config: libkrun-sev
+#cgo LDFLAGS: -lkrun-sev
 */
 import "C"
 
