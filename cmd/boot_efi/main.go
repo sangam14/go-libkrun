@@ -67,7 +67,7 @@ func bootEfi(args []string) int {
 		return -1
 	}
 
-	if e := krun.SetPasstFd(ctxId, pfd); e != 0 {
+	if e := krun.SetPasstFd(ctxId, int32(pfd)); e != 0 {
 		errno = -e
 		perror("Error configuring net mode")
 		return -1
