@@ -107,14 +107,6 @@ func FreeCtx(ctxId uint32) (ret int32) {
 	return
 }
 
-// krun_get_shutdown_eventfd
-func GetShutdownEventfd(ctxId uint32) (ret int32) {
-	_ctxId := C.uint32_t(ctxId)
-	_ret := C.krun_get_shutdown_eventfd(_ctxId)
-	ret = int32(_ret)
-	return
-}
-
 // krun_set_console_output
 func SetConsoleOutput(ctxId uint32, cFilepath string) (ret int32) {
 	_ctxId := C.uint32_t(ctxId)
