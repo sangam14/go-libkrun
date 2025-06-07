@@ -6,11 +6,20 @@ ROOTFS_DIR = rootfs_$(ROOTFS_DISTRO)
 .PHONY: clean rootfs
 
 EXAMPLES := chroot_vm
+ifeq ($(EFI),1)
+    EXAMPLES := boot_efi
+endif
 
 all: $(EXAMPLES)
 
 chroot_vm:
 	go build -o $@ ./cmd/chroot_vm
+ifeq ($(OS),Darwin)
+	codesign --entitlements chroot_vm.entitlements --force -s - $@
+endif
+
+boot_efi:
+	go build -tags efi -o $@ ./cmd/boot_efi
 ifeq ($(OS),Darwin)
 	codesign --entitlements chroot_vm.entitlements --force -s - $@
 endif
