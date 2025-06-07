@@ -56,7 +56,7 @@ func bootEfi(args []string) int {
 		return -1
 	}
 
-	efd := krun.GetShutdownEventFd(ctxId);
+	efd := krun.GetShutdownEventfd(ctxId);
 	if (efd < 0) {
 		perror("Can't get shutdown eventfd");
 		return -1;
