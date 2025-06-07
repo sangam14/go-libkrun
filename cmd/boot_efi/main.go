@@ -63,7 +63,7 @@ func bootEfi(args []string) int {
 	}
 
 	pfd := connectToPasst(socketPath)
-	if passt_fd < 0 {
+	if pfd < 0 {
 		return -1
 	}
 
