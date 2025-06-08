@@ -1,0 +1,151 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: true
+        type: string
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  build:
+    name: Build Release Binaries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            suffix: darwin-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            suffix: darwin-arm64
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: ${{ env.GO_VERSION }}
+
+    - name: Install libkrun dependencies (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          pkg-config \
+          libkrun-dev || echo "libkrun-dev not available, continuing..."
+
+    - name: Install libkrun dependencies (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install pkg-config || true
+
+    - name: Build binaries
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+        CGO_ENABLED: 1
+      run: |
+        # Build regular version
+        go build -o chroot_vm-${{ matrix.suffix }} ./cmd/chroot_vm
+        
+        # Build EFI version
+        go build -tags efi -o boot_efi-${{ matrix.suffix }} ./cmd/boot_efi
+        
+        # Build other examples
+        go build -o simple_test-${{ matrix.suffix }} ./cmd/simple_test
+        go build -o feature_test-${{ matrix.suffix }} ./cmd/feature_test
+        go build -o advanced_test-${{ matrix.suffix }} ./cmd/advanced_test
+
+    - name: Code sign (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        codesign --entitlements chroot_vm.entitlements --force -s - chroot_vm-${{ matrix.suffix }} || true
+        codesign --entitlements chroot_vm.entitlements --force -s - boot_efi-${{ matrix.suffix }} || true
+        codesign --entitlements chroot_vm.entitlements --force -s - simple_test-${{ matrix.suffix }} || true
+        codesign --entitlements chroot_vm.entitlements --force -s - feature_test-${{ matrix.suffix }} || true
+        codesign --entitlements chroot_vm.entitlements --force -s - advanced_test-${{ matrix.suffix }} || true
+
+    - name: Create archive
+      run: |
+        tar -czf go-libkrun-${{ matrix.suffix }}.tar.gz \
+          chroot_vm-${{ matrix.suffix }} \
+          boot_efi-${{ matrix.suffix }} \
+          simple_test-${{ matrix.suffix }} \
+          feature_test-${{ matrix.suffix }} \
+          advanced_test-${{ matrix.suffix }} \
+          README.md \
+          LICENSE
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: go-libkrun-${{ matrix.suffix }}
+        path: go-libkrun-${{ matrix.suffix }}.tar.gz
+        retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          TAG="${{ github.event.inputs.tag }}"
+        else
+          TAG=${GITHUB_REF#refs/tags/}
+        fi
+        echo "tag=$TAG" >> $GITHUB_OUTPUT
+        
+        # Generate a simple changelog
+        echo "## Changes in $TAG" > CHANGELOG.md
+        echo "" >> CHANGELOG.md
+        echo "### Features" >> CHANGELOG.md
+        echo "- Built with Go ${{ env.GO_VERSION }}" >> CHANGELOG.md
+        echo "- Supports both regular and EFI builds" >> CHANGELOG.md
+        echo "- Multi-platform binaries (Linux, macOS)" >> CHANGELOG.md
+        echo "- Multi-architecture support (amd64, arm64)" >> CHANGELOG.md
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.changelog.outputs.tag }}
+        name: Release ${{ steps.changelog.outputs.tag }}
+        body_path: CHANGELOG.md
+        draft: false
+        prerelease: false
+        files: |
+          go-libkrun-*/go-libkrun-*.tar.gz
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
