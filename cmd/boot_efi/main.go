@@ -9,8 +9,10 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 
+	"github.com/higebu/netfd"
 	"go-libkrun/pkg/krun"
 )
 
@@ -21,10 +23,44 @@ func perror(message string) {
 }
 
 func connectToPasst(socketPath string) int {
-	return 0
+	conn, err := net.Dial("unix", socketPath)
+	if err != nil {
+		perror("Failed to bind passt socket")
+		return -1
+	}
+	return netfd.GetFdFromConn(conn)
 }
 
+const ShutdownSockPath = "/tmp/krun_shutdown.sock"
+
 func listenShutdownRequest(fd int) {
+	buf := []byte{}
+
+	socket, err := net.Listen("unix", ShutdownSockPath)
+	if err != nil {
+		perror("Error listening on socket")
+		os.Exit(1)
+	}
+	defer socket.Close()
+
+	for {
+		conn, err := socket.Accept()
+		if err != nil {
+			perror("Error accepting connection")
+			os.Exit(1)
+		}
+		defer conn.Close()
+
+		file := os.NewFile(uintptr(fd), "")
+		if file == nil {
+			os.Exit(1)
+		}
+
+		_, err = file.Write(buf)
+		if err != nil {
+			perror("Error writing to eventfd")
+		}
+	}
 }
 
 func bootEfi(args []string) int {
